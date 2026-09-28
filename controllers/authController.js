@@ -24,3 +24,27 @@ export const register = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Logic for authenticating an existing user
+export const login = async (req, res) => {
+  const { email, password } = req.body;
+  try {
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: "Invalid credentials" });
+
+    // Use bcrypt to compare the provided password with the hashed password in DB
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch)
+      return res.status(400).json({ message: "Invalid credentials" });
+
+    // Generate a JWT containing the user's ID, signed with our SECRET
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "1h",
+    });
+
+    // Return the token to the user for future authenticated requests
+    res.json({ token });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
